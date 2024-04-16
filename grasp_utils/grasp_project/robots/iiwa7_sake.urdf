@@ -1,0 +1,468 @@
+<?xml version="0.0" ?>
+<robot name="iiwa7">
+    <material name="Grey">
+        <color rgba="0.4 0.4 0.4 1"/>
+    </material>
+    <material name="Orange">
+        <color rgba="1 0.423529 0.0392157 1"/>
+    </material>
+    <material name="black">
+        <color rgba="0.0 0.0 0.0 1.0"/>
+    </material>
+    <material name="blue">
+        <color rgba="0.0 0.0 0.8 1.0"/>
+    </material>
+    <material name="grey">
+        <color rgba="0.5 0.5 0.5 1"/>
+    </material>
+    <!-- KUKA links -->
+	<link name="base">
+		<inertial>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<mass value="0.00000"/>
+			<inertia ixx="0.00000" ixy="0" ixz="0" iyy="0.00000" iyz="0" izz="0.00000"/>
+		</inertial>
+		<visual>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<geometry>
+				<mesh filename="./kuka_description/meshes/link_0_vis.stl" scale="1.00000 1.00000 1.00000"/>
+			</geometry>
+			<material name="Grey"/>
+		</visual>
+		<collision>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<geometry>
+				<mesh filename="./kuka_description/meshes/link_0.stl" scale="1.00000 1.00000 1.00000"/>
+			</geometry>
+			<material name="Grey"/>
+		</collision>
+	</link>
+	<link name="link_1">
+		<inertial>
+			<origin rpy="3.14159 -1.30346 -1.57080" xyz="0.00000 -0.03000 0.12000"/>
+			<mass value="3.45250"/>
+			<inertia ixx="0.04807" ixy="0" ixz="0" iyy="0.08060" iyz="0" izz="0.05986"/>
+		</inertial>
+		<visual>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00750"/>
+			<geometry>
+				<mesh filename="./kuka_description/meshes/link_1_vis.stl" scale="1.00000 1.00000 1.00000"/>
+			</geometry>
+			<material name="Grey"/>
+		</visual>
+		<collision>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00750"/>
+			<geometry>
+				<mesh filename="./kuka_description/meshes/link_1.stl" scale="1.00000 1.00000 1.00000"/>
+			</geometry>
+			<material name="Grey"/>
+		</collision>
+	</link>
+	<link name="link_2">
+		<inertial>
+			<origin rpy="0.25492 -0.00000 1.57080" xyz="0.00030 0.05900 0.04200"/>
+			<mass value="3.48210"/>
+			<inertia ixx="0.05044" ixy="0" ixz="0" iyy="0.06044" iyz="0" izz="0.05474"/>
+		</inertial>
+		<visual>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<geometry>
+				<mesh filename="./kuka_description/meshes/link_2_vis.stl" scale="1.00000 1.00000 1.00000"/>
+			</geometry>
+			<material name="Orange"/>
+		</visual>
+		<collision>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<geometry>
+				<mesh filename="./kuka_description/meshes/link_2.stl" scale="1.00000 1.00000 1.00000"/>
+			</geometry>
+			<material name="Orange"/>
+		</collision>
+	</link>
+	<link name="link_3">
+		<inertial>
+			<origin rpy="-0.00000 -1.29998 1.57080" xyz="0.00000 0.03000 0.13000"/>
+			<mass value="4.05623"/>
+			<inertia ixx="0.05876" ixy="0" ixz="0" iyy="0.10595" iyz="0" izz="0.07932"/>
+		</inertial>
+		<visual>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 -0.02600"/>
+			<geometry>
+				<mesh filename="./kuka_description/meshes/link_3_vis.stl" scale="1.00000 1.00000 1.00000"/>
+			</geometry>
+			<material name="Grey"/>
+		</visual>
+		<collision>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 -0.02600"/>
+			<geometry>
+				<mesh filename="./kuka_description/meshes/link_3.stl" scale="1.00000 1.00000 1.00000"/>
+			</geometry>
+			<material name="Grey"/>
+		</collision>
+	</link>
+	<link name="link_4">
+		<inertial>
+			<origin rpy="-0.25494 0.00000 0.00000" xyz="0.00000 0.06700 0.03400"/>
+			<mass value="3.48220"/>
+			<inertia ixx="0.07772" ixy="0" ixz="0" iyy="0.04739" iyz="0" izz="0.05791"/>
+		</inertial>
+		<visual>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<geometry>
+				<mesh filename="./kuka_description/meshes/link_4_vis.stl" scale="1.00000 1.00000 1.00000"/>
+			</geometry>
+			<material name="Orange"/>
+		</visual>
+		<collision>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<geometry>
+				<mesh filename="./kuka_description/meshes/link_4.stl" scale="1.00000 1.00000 1.00000"/>
+			</geometry>
+			<material name="Orange"/>
+		</collision>
+	</link>
+	<link name="link_5">
+		<inertial>
+			<origin rpy="3.14159 -1.08595 -1.57080" xyz="0.00010 0.02100 0.07600"/>
+			<mass value="2.16330"/>
+			<inertia ixx="0.03566" ixy="0" ixz="0" iyy="0.06099" iyz="0" izz="0.04247"/>
+		</inertial>
+		<visual>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 -0.02600"/>
+			<geometry>
+				<mesh filename="./kuka_description/meshes/link_5_vis.stl" scale="1.00000 1.00000 1.00000"/>
+			</geometry>
+			<material name="Grey"/>
+		</visual>
+		<collision>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 -0.02600"/>
+			<geometry>
+				<mesh filename="./kuka_description/meshes/link_5.stl" scale="1.00000 1.00000 1.00000"/>
+			</geometry>
+			<material name="Grey"/>
+		</collision>
+	</link>
+	<link name="link_6">
+		<inertial>
+			<origin rpy="0.17642 -0.00000 0.00000" xyz="0.00000 0.00060 0.00040"/>
+			<mass value="2.34660"/>
+			<inertia ixx="0.03026" ixy="0" ixz="0" iyy="0.02236" iyz="0" izz="0.02587"/>
+		</inertial>
+		<visual>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<geometry>
+				<mesh filename="./kuka_description/meshes/link_6_vis.stl" scale="1.00000 1.00000 1.00000"/>
+			</geometry>
+			<material name="Orange"/>
+		</visual>
+		<collision>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<geometry>
+				<mesh filename="./kuka_description/meshes/link_6.stl" scale="1.00000 1.00000 1.00000"/>
+			</geometry>
+			<material name="Orange"/>
+		</collision>
+	</link>
+	<link name="link_7">
+		<inertial>
+			<origin rpy="0.00000 -0.00000 0.78963" xyz="0.00000 0.00000 0.02000"/>
+			<mass value="3.12900"/>
+			<inertia ixx="0.02222" ixy="0" ixz="0" iyy="0.02222" iyz="0" izz="0.03603"/>
+		</inertial>
+		<visual>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 -0.00050"/>
+			<geometry>
+				<mesh filename="./kuka_description/meshes/link_7_vis.stl" scale="1.00000 1.00000 1.00000"/>
+			</geometry>
+			<material name="Grey"/>
+		</visual>
+		<collision>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 -0.00050"/>
+			<geometry>
+				<mesh filename="./kuka_description/meshes/link_7.stl" scale="1.00000 1.00000 1.00000"/>
+			</geometry>
+			<material name="Grey"/>
+		</collision>
+	</link>
+	<link name="right_hand">
+		<inertial>
+			<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.00000"/>
+			<mass value="0.00000"/>
+			<inertia ixx="0.00000" ixy="0" ixz="0" iyy="0.00000" iyz="0" izz="0.00000"/>
+		</inertial>
+	</link>
+	<!-- KUKA joints -->
+	<joint name="joint_1" type="revolute">
+		<parent link="base"/>
+		<child link="link_1"/>
+		<dynamics damping="1.0" friction="0.0001"/>
+		<origin rpy="0.00000 -0.00000 0.00000" xyz="0.00000 0.00000 0.15000"/>
+		<axis xyz="0.00000 0.00000 1.00000"/>
+		<limit effort="176.0" lower="-2.96705972839" upper="2.96705972839" velocity="10" />
+	</joint>
+	<joint name="joint_2" type="revolute">
+		<parent link="link_1"/>
+		<child link="link_2"/>
+		<dynamics damping="1.0" friction="0.0001"/>
+		<origin rpy="1.57080 0.00000 -3.14159" xyz="-0.00000 -0.00000 0.19000"/>
+		<axis xyz="0.00000 0.00000 1.00000"/>
+		<limit effort="176.0" lower="-2.09439510239" upper="2.09439510239" velocity="10" />
+	</joint>
+	<joint name="joint_3" type="revolute">
+		<parent link="link_2"/>
+		<child link="link_3"/>
+		<dynamics damping="1.0" friction="0.0001"/>
+		<origin rpy="1.57080 -0.00000 -3.14159" xyz="-0.00000 0.21000 0.00000"/>
+		<axis xyz="0.00000 0.00000 1.00000"/>
+		<limit effort="110.0" lower="-2.96705972839" upper="2.96705972839" velocity="10" />
+	</joint>
+	<joint name="joint_4" type="revolute">
+		<parent link="link_3"/>
+		<child link="link_4"/>
+		<dynamics damping="1.0" friction="0.0001"/>
+		<origin rpy="1.57080 0.00000 0.00000" xyz="-0.00000 -0.00000 0.19000"/>
+		<axis xyz="0.00000 0.00000 1.00000"/>
+		<limit effort="110.0" lower="-2.09439510239" upper="2.09439510239" velocity="10" />
+	</joint>
+	<joint name="joint_5" type="revolute">
+		<parent link="link_4"/>
+		<child link="link_5"/>
+		<dynamics damping="1.0" friction="0.0001"/>
+		<origin rpy="1.57080 -0.00000 3.14159" xyz="0.00000 0.21000 -0.00000"/>
+		<axis xyz="0.00000 0.00000 1.00000"/>
+		<limit effort="110.0" lower="-2.96705972839" upper="2.96705972839" velocity="10" />
+	</joint>
+	<joint name="joint_6" type="revolute">
+		<parent link="link_5"/>
+		<child link="link_6"/>
+		<dynamics damping="1.0" friction="0.0001"/>
+		<origin rpy="1.57080 0.00000 0.00000" xyz="0.00000 0.06070 0.19000"/>
+		<axis xyz="0.00000 0.00000 1.00000"/>
+		<limit effort="40.0" lower="-2.09439510239" upper="2.09439510239" velocity="10" />
+	</joint>
+	<joint name="joint_7" type="revolute">
+		<parent link="link_6"/>
+		<child link="link_7"/>
+		<dynamics damping="1.0" friction="0.0001"/>
+		<origin rpy="1.57080 -0.00000 3.14159" xyz="0.00000 0.08100 0.06070"/>
+		<axis xyz="0.00000 0.00000 1.00000"/>
+		<limit effort="40.0" lower="-3.05432619099" upper="3.05432619099" velocity="10" />
+	</joint>
+	<joint name="jointfix_0_13" type="fixed">
+		<parent link="link_7"/>
+		<child link="right_hand"/>
+		<dynamics damping="1.0" friction="0.0001"/>
+		<origin rpy="0.00000 -0.00000 -3.14159" xyz="0.00000 0.00000 0.04400"/>
+		<axis xyz="0.00000 0.00000 0.00000"/>
+	</joint>
+	<!-- Gripper links -->
+	<!-- links -->
+  <link name="left_ezgripper_mount">
+    <visual>
+      <origin rpy="0 0 0" xyz="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://ezgripper_description/meshes/visual/SAKE_Single_Mount.stl"/>
+      </geometry>
+      <material name="blue"/>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0.0 0.0 0.0"/>
+      <geometry>
+        <mesh filename="package://ezgripper_description/meshes/collision/SAKE_Single_Mount.stl"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value=".3"/>
+      <inertia ixx="0.01" ixy="0.0" ixz="0.0" iyy="0.01" iyz="0.0" izz="0.01"/>
+    </inertial>
+  </link>
+  <joint name="left_ezgripper_mount2base" type="fixed">
+    <origin rpy="0 -1.5708 0" xyz="0.0 0.0 0.0"/>
+    <parent link="right_hand"/>
+    <child link="left_ezgripper_mount"/>
+    <axis xyz="0 0 0"/>
+    <limit effort="0" lower="-1.57079633" upper="0.25" velocity="3.67"/>
+  </joint>
+  <link name="left_ezgripper_palm_link">
+    <visual>
+      <origin rpy="0 0 0" xyz="0.0 0 0"/>
+      <geometry>
+        <mesh filename="package://ezgripper_description/meshes/visual/SAKE_Palm_IM.stl"/>
+      </geometry>
+      <material name="blue"/>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0.0 0 0"/>
+      <geometry>
+        <mesh filename="package://ezgripper_description/meshes/collision/SAKE_Palm_IM.stl"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value=".3"/>
+      <inertia ixx="0.01" ixy="0.0" ixz="0.0" iyy="0.01" iyz="0.0" izz="0.01"/>
+    </inertial>
+  </link>
+  <joint name="left_ezgripper_mount2palm" type="fixed">
+    <origin rpy="0 0 0" xyz="0.016 0.0 0.0"/>
+    <parent link="left_ezgripper_mount"/>
+    <child link="left_ezgripper_palm_link"/>
+    <axis xyz="0 0 0"/>
+    <limit effort="0" lower="-1.57075" upper="0.25" velocity="3.67"/>
+  </joint>
+  <link name="left_ezgripper_finger_L1_1">
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://ezgripper_description/meshes/visual/SAKE_Finger_L1_IM.stl"/>
+      </geometry>
+      <material name="grey"/>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://ezgripper_description/meshes/collision/SAKE_Finger_L1_IM.stl"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value=".025"/>
+      <inertia ixx="0.01" ixy="0.0" ixz="0.0" iyy="0.01" iyz="0.0" izz="0.01"/>
+    </inertial>
+  </link>
+  <link name="left_ezgripper_finger_L1_2">
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://ezgripper_description/meshes/visual/SAKE_Finger_L1_IM.stl"/>
+      </geometry>
+      <material name="grey"/>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://ezgripper_description/meshes/collision/SAKE_Finger_L1_IM.stl"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value=".025"/>
+      <inertia ixx="0.01" ixy="0.0" ixz="0.0" iyy="0.01" iyz="0.0" izz="0.01"/>
+    </inertial>
+  </link>
+  <link name="left_ezgripper_finger_L2_1">
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://ezgripper_description/meshes/visual/SAKE_Finger_L2_IM.stl"/>
+      </geometry>
+      <material name="grey"/>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://ezgripper_description/meshes/collision/SAKE_Finger_L2_IM.stl"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value=".025"/>
+      <inertia ixx="0.01" ixy="0.0" ixz="0.0" iyy="0.01" iyz="0.0" izz="0.01"/>
+    </inertial>
+  </link>
+  <link name="left_ezgripper_finger_L2_2">
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://ezgripper_description/meshes/visual/SAKE_Finger_L2_IM.stl"/>
+      </geometry>
+      <material name="grey"/>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://ezgripper_description/meshes/collision/SAKE_Finger_L2_IM.stl"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value=".025"/>
+      <inertia ixx="0.01" ixy="0.0" ixz="0.0" iyy="0.01" iyz="0.0" izz="0.01"/>
+    </inertial>
+  </link>
+  <link name="left_ezgripper_finger_pad_1">
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://ezgripper_description/meshes/visual/SAKE_Finger_Pad_IM.stl"/>
+      </geometry>
+      <material name="grey"/>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://ezgripper_description/meshes/collision/SAKE_Finger_Pad_IM.stl"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value=".025"/>
+      <inertia ixx="0.01" ixy="0.0" ixz="0.0" iyy="0.01" iyz="0.0" izz="0.01"/>
+    </inertial>
+  </link>
+  <link name="left_ezgripper_finger_pad_2">
+    <visual>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://ezgripper_description/meshes/visual/SAKE_Finger_Pad_IM.stl"/>
+      </geometry>
+      <material name="grey"/>
+    </visual>
+    <collision>
+      <origin rpy="0 0 0" xyz="0 0 0"/>
+      <geometry>
+        <mesh filename="package://ezgripper_description/meshes/collision/SAKE_Finger_Pad_IM.stl"/>
+      </geometry>
+    </collision>
+    <inertial>
+      <mass value=".025"/>
+      <inertia ixx="0.01" ixy="0.0" ixz="0.0" iyy="0.01" iyz="0.0" izz="0.01"/>
+    </inertial>
+  </link>
+  <!-- Gripper joints -->
+  <joint name="left_ezgripper_knuckle_palm_L1_1" type="revolute">
+    <parent link="left_ezgripper_palm_link"/>
+    <child link="left_ezgripper_finger_L1_1"/>
+    <origin rpy="-1.5708 0 0" xyz="0.0595 0.03 0"/>
+    <axis xyz="0 1 0"/>
+    <limit effort="1" lower="-1.57075" upper="0.27" velocity="3.67"/>
+  </joint>
+  <joint name="left_ezgripper_knuckle_palm_L1_2" type="revolute">
+    <parent link="left_ezgripper_palm_link"/>
+    <child link="left_ezgripper_finger_L1_2"/>
+    <origin rpy="1.5708 0 0" xyz="0.0595 -0.03 0"/>
+    <axis xyz="0 1 0"/>
+    <limit effort="1" lower="-1.57075" upper="0.27" velocity="3.67"/>
+    <mimic joint="left_ezgripper_knuckle_palm_L1_1"/>
+  </joint>
+  <joint name="left_ezgripper_knuckle_L1_L2_1" type="revolute">
+    <parent link="left_ezgripper_finger_L1_1"/>
+    <child link="left_ezgripper_finger_L2_1"/>
+    <origin rpy="0 0 0" xyz="0.052 0 0"/>
+    <axis xyz="0 1 0"/>
+    <limit effort="1" lower="0" upper="1.57075" velocity="3.67"/>
+  </joint>
+  <joint name="left_ezgripper_knuckle_L1_L2_2" type="revolute">
+    <parent link="left_ezgripper_finger_L1_2"/>
+    <child link="left_ezgripper_finger_L2_2"/>
+    <origin rpy="0 0 0" xyz="0.052 0 0"/>
+    <axis xyz="0 1 0"/>
+    <limit effort="1" lower="0" upper="1.57075" velocity="3.67"/>
+  </joint>
+  <joint name="left_ezgripper_joint_finger_pad1" type="fixed">
+    <parent link="left_ezgripper_finger_L2_1"/>
+    <child link="left_ezgripper_finger_pad_1"/>
+    <origin rpy="0 -0.2318 0" xyz="0.01849 0 0"/>
+    <axis xyz="0 1 0"/>
+  </joint>
+  <joint name="left_ezgripper_joint_finger_pad2" type="fixed">
+    <parent link="left_ezgripper_finger_L2_2"/>
+    <child link="left_ezgripper_finger_pad_2"/>
+    <origin rpy="0 -0.2318 0" xyz="0.01849 0 0"/>
+    <axis xyz="0 1 0"/>
+  </joint>
+</robot>
