@@ -1,0 +1,25 @@
+<?xml version="1.0" encoding="utf-8"?>
+<launch>
+
+  <arg name="ip_address" default="10.2.189.20"/>
+  <arg name="port" default="8008"/>
+  <arg name="img_port" default="8009"/>
+  <arg name="image_topic" default="/image_raw"/>
+  <arg name="device" default="ultraleap"/>
+
+  <node name="tcp_lisenter" pkg="soma" type="socket_node">
+    <param name="ip_address" value="$(arg ip_address)"/>
+    <param name="port" value="$(arg port)"/>
+    <param name="device" value="$(arg device)"/>
+  </node>
+
+  <node name="video_sender" pkg="soma" type="image_node">
+    <param name="ip_address" value="$(arg ip_address)"/>
+    <param name="img_port" value="$(arg img_port)"/>
+    <param name="image_topic" value="$(arg image_topic)"/>
+  </node>
+
+  <node name="rviz" pkg="rviz" type="rviz" args="-d $(find soma)/rviz/viz.rviz">
+  </node>
+
+</launch>
