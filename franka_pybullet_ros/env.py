@@ -15,7 +15,8 @@ class FrankaPandaEnv:
         self.bc = bc.BulletClient(connection_mode)
         egl = pkgutil.get_loader('eglRenderer')
         self.bc.loadPlugin(egl.get_filename(), "eglRendererPlugin")
-        self.bc.configureDebugVisualizer(rgbBackground=[33. / 255., 90. / 255., 127. / 255.])
+        self.bc.configureDebugVisualizer(
+            rgbBackground=[33. / 255., 90. / 255., 127. / 255.])
         self.bc.configureDebugVisualizer(self.bc.COV_ENABLE_GUI, 0)
         self.frequency = frequency
         self.bc.setTimeStep(1 / frequency)
@@ -24,11 +25,12 @@ class FrankaPandaEnv:
         self.plane_id = None
         self.table_id = None
         self.object_id = []
-        self.object_list = ["YcbBanana", "YcbPear", "YcbHammer", "YcbScissors", "YcbStrawberry", "YcbChipsCan",
-                            "YcbCrackerBox", "YcbFoamBrick", "YcbGelatinBox", "YcbMasterChefCan",
-                            "YcbMediumClamp",
-                            "YcbMustardBottle", "YcbPottedMeatCan", "YcbPowerDrill", "YcbTennisBall",
-                            "YcbTomatoSoupCan"]
+        # self.object_list = ["YcbBanana", "YcbPear", "YcbHammer", "YcbScissors", "YcbStrawberry", "YcbChipsCan",
+        #                     "YcbCrackerBox", "YcbFoamBrick", "YcbGelatinBox", "YcbMasterChefCan",
+        #                     "YcbMediumClamp",
+        #                     "YcbMustardBottle", "YcbPottedMeatCan", "YcbPowerDrill", "YcbTennisBall",
+        #                     "YcbTomatoSoupCan"]
+        self.object_list = ["YcbCrackerBox"]
 
         if object_from_list:
             self.add_ycb_objects_from_list(self.object_list)
@@ -37,7 +39,8 @@ class FrankaPandaEnv:
 
         self.controller = controller
         self.include_gripper = include_gripper
-        self.panda_robot = FrankaPanda(self.bc, include_gripper=include_gripper, simple_model=simple_model)
+        self.panda_robot = FrankaPanda(
+            self.bc, include_gripper=include_gripper, simple_model=simple_model)
 
     def simulate_step(self):
         self.bc.stepSimulation()
@@ -53,7 +56,8 @@ class FrankaPandaEnv:
 
     def add_urdf_object(self, filename):
         flags = self.bc.URDF_USE_INERTIA_FROM_FILE
-        self.object_id.append(self.bc.loadURDF(filename, [0.5, 0.0, 0.4], flags=flags))
+        self.object_id.append(self.bc.loadURDF(
+            filename, [0.5, 0.0, 0.4], flags=flags))
 
     def add_ycb_objects_from_list(self, object_list):
         self.bc.configureDebugVisualizer(self.bc.COV_ENABLE_RENDERING, 0)

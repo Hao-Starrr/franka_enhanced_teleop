@@ -143,6 +143,8 @@ class FrankaPandaEnvRosVisual(FrankaPandaEnv):
             '/camera/depth/image_raw', Image, queue_size=10)
         self.camera_info_publisher = rospy.Publisher(
             '/camera/rgb/camera_info', CameraInfo, queue_size=10)
+        self.mask_image_publisher = rospy.Publisher(
+            '/camera/mask/image_raw', Image, queue_size=10)
 
         # ###############################################################
         self.color_view_publisher = rospy.Publisher(
@@ -203,6 +205,8 @@ class FrankaPandaEnvRosVisual(FrankaPandaEnv):
         self.static_tf = TransformStamped()
         self.static_tf.header.frame_id = "world"
 
+        # self.panda_robot 可以用
+
     def get_joint_state(self, reading):
         self.current_joint_state = reading.position
 
@@ -224,7 +228,7 @@ class FrankaPandaEnvRosVisual(FrankaPandaEnv):
             except (tf2_ros.LookupException, tf2_ros.ConnectivityException, tf2_ros.ExtrapolationException):
                 continue
 
-        color, depth, cam_pos, cam_orn, ee_pos, ee_orn = self.get_image()
+        color, depth, mask, cam_pos, cam_orn, ee_pos, ee_orn = self.get_image()
         stamp = rospy.Time.now()
 
         image = self.cv_bridge.cv2_to_imgmsg(color)
@@ -236,6 +240,11 @@ class FrankaPandaEnvRosVisual(FrankaPandaEnv):
         image.header.frame_id = "actual_camera"
         image.header.stamp = stamp
         self.depth_image_publisher.publish(image)
+
+        image = self.cv_bridge.cv2_to_imgmsg(mask)
+        image.header.frame_id = "actual_camera"
+        image.header.stamp = stamp
+        self.mask_image_publisher.publish(image)
 
         self.camera_info_msg.header.stamp = stamp
         self.camera_info_publisher.publish(self.camera_info_msg)
@@ -321,10 +330,12 @@ class FrankaPandaEnvRosVisual(FrankaPandaEnv):
                                      renderer=self.bc.ER_BULLET_HARDWARE_OPENGL,
                                      flags=self.bc.ER_SEGMENTATION_MASK_OBJECT_AND_LINKINDEX)
         color = cv2.cvtColor(np.array(img[2]), cv2.COLOR_RGB2BGR)
-        depth = self.camera_far * self.camera_near / (
-            self.camera_far - (self.camera_far - self.camera_near) * np.array(img[3]))
+        #####
+        mask = np.array(img[4])
+        #####
+        depth = np.array(img[3])
         # depth = np.where(depth >= self.camera_far, np.zeros_like(depth), depth)
-        return color, depth, cam_pos, cam_orn, pos, orn
+        return color, depth, mask, cam_pos, cam_orn, pos, orn
 
     #####################################################################
     def get_view(self):

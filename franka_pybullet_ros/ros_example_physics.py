@@ -11,12 +11,12 @@ import pybullet as p
 
 # object_from_list -> frequency: 850 Hz
 
-env = FrankaPandaEnvRosPhysics(connection_mode=p.GUI,
+env = FrankaPandaEnvRosPhysics(connection_mode=p.DIRECT,
                                frequency=1000.,
                                controller='position',
                                include_gripper=True,
                                simple_model=True,
-                               object_from_sdf=True,
-                               object_from_list=False)
+                               object_from_sdf=False,
+                               object_from_list=True)
 
 env.simulation_loop()

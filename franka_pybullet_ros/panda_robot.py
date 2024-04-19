@@ -3,7 +3,7 @@
 
 import pybullet as p
 import numpy as np
-from roboticstoolbox import Panda, ETS
+import roboticstoolbox as rtb
 import spatialmath as sm
 
 
@@ -72,7 +72,7 @@ class FrankaPanda:
         self.joint_effort = [0.] * self.dof
 
         #########################
-        self.rtb_panda = Panda()  # 使用robotics toolbox的Panda模型
+        self.rtb_panda = rtb.models.DH.Panda()  # 使用robotics toolbox的Panda模型
         #########################
 
     def reset_state(self):
@@ -100,28 +100,6 @@ class FrankaPanda:
 
     ##################################################
 
-    def calculate_inverse_kinematics_toolbox(self, position, orientation):
-        """
-        使用robotics-toolbox-python来计算逆运动学。
-        :param position: 目标位置，列表或元组，形如 [x, y, z]
-        :param orientation: 目标方向，四元数，形如 [x, y, z, w]
-        :return: 关节角列表
-        """
-        # 获取当前关节位置
-        current_joint_positions, _, _, _ = self.get_pos_vel_force_torque()
-
-        # 将位置和四元数转换为变换矩阵
-        T = sm.SE3(position) * sm.UnitQuaternion(orientation).SE3()
-
-        # 使用当前关节位置作为初始猜测求解逆运动学
-        sol = self.rtb_panda.ikine_LM(T, q0=current_joint_positions)
-
-        # 检查解的有效性
-        if sol.success:
-            return sol.q.tolist()  # 返回解的关节角
-        else:
-            print("逆运动学求解失败")
-            return None
     ##################################################
 
     def calculate_inverse_dynamics(self, pos, vel, desired_acc):

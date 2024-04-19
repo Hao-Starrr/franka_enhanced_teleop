@@ -4,11 +4,11 @@
 from env_ros import FrankaPandaEnvRosVisual
 import pybullet as p
 
-env = FrankaPandaEnvRosVisual(connection_mode=p.GUI,
+env = FrankaPandaEnvRosVisual(connection_mode=p.DIRECT,
                               frequency=30.,
                               include_gripper=True,
                               simple_model=False,
-                              object_from_sdf=True,
-                              object_from_list=False)
+                              object_from_sdf=False,
+                              object_from_list=True)
 
 env.simulation_loop()

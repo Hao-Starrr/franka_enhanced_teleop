@@ -1,5 +1,3 @@
-from spatialmath import SE3
-import roboticstoolbox as rtb
 import trimesh
 import copy
 
@@ -17,7 +15,9 @@ from robot import KUKASAKE
 import torch
 import pytorch_kinematics as pk
 import pytransform3d.trajectories
-import pytransform3d.trajectories as pytraj
+
+import roboticstoolbox as rtb
+from spatialmath import SE3
 
 
 p.connect(p.GUI)
@@ -96,6 +96,9 @@ points = np.asarray(pcd.points)
 points, H, w = model.sampler(points)
 # H is grasp pose, w is grasp width
 
+
+############################# choose the grasp pose ##################################
+# reachability
 gmm_reach = SE3GMM()
 parameter = np.load('gmm_reachability.npz')
 gmm_reach.mu = parameter['mu']
@@ -104,14 +107,17 @@ gmm_reach.pi = parameter['pi']
 H_prob = gmm_reach.eval(H)
 H = H[H_prob > 0.0005733336724437366]
 
+# grasp direction filter
 H = H[H[:, 2, 3] > 0.05]
+
 # draw_grasp_poses(H, color=[0.6, 0.6, 0.6], robot='kuka')
 draw_point_cloud(points)
 
+##################### fit the distribution, then we can take the gradient ##################
 gmm_grasp = SE3GMM()
 H_sample = gmm_grasp.fit(H, n_clusters=min(8, H.shape[0]), n_iterations=10)
-H_mu = gmm_grasp.mu
-prob = gmm_grasp.eval(H)
+# H_mu = gmm_grasp.mu
+# prob = gmm_grasp.eval(H)
 
 draw_grasp_poses(H, color=[1, 0., 0.], robot='kuka')
 
@@ -135,80 +141,55 @@ for i in range(100):
     # T[:3] += 1e-3 * grad[:3] / np.linalg.norm(grad[:3])
     # T[3:] += 1e-3 * grad[3:] / np.linalg.norm(grad[3:])
 
+
 device = "cpu"
 dtype = torch.float32
-
-
 chain = pk.build_serial_chain_from_urdf(
     open("KUKA_IIWA_URDF/iiwa7.urdf").read(), "iiwa_link_ee")
 chain = chain.to(dtype=dtype, device=device)
-q_orig = robot.get_joint_state()
-count = 500
-flag = False
 
-###############
-kuka_model = rtb.models.iiwa7()
-###############
-
-
-# find ik
+# 增加维度从7变成1x7
 q_temp = torch.tensor(robot.get_joint_state(), dtype=dtype,
                       device=device, requires_grad=False)[None, :]
 with torch.inference_mode():
     while True:
+        # 算出ee pose
+        m = chain.forward_kinematics(q_temp, end_only=True).get_matrix()
+        # 换成指数坐标
+        T = pytransform3d.trajectories.exponential_coordinates_from_transforms(
+            m[0].numpy())
 
-        for i in range(1):
-            m = chain.forward_kinematics(q_temp, end_only=True).get_matrix()
-            T = pytransform3d.trajectories.exponential_coordinates_from_transforms(
-                m[0].numpy())
+        # 求梯度(指数坐标里的速度)
+        grad = gmm_grasp.grad(T)
+        if np.linalg.norm(grad) > 1e1:
+            grad = grad / np.linalg.norm(grad) * 1e1
+        # 梯度也在指数坐标里,所以要在这个坐标里加上速度
+        T_new = copy.deepcopy(T)
+        T_new[:3] = T[:3] + 1e-3 * grad[:3]
+        T_new[3:] = T[3:] + 1e-3 * grad[3:]
+        # 转换回矩阵
+        T_new = torch.tensor(pytransform3d.trajectories.transforms_from_exponential_coordinates(T_new),
+                             dtype=dtype)[None, :, :]
 
-            ##################
-            m_test = kuka_model.fkine(q_temp.numpy())  # return a SE3 object
-            T_test = m_test.A  # convert to 4x4 matrix
-            T_test = pytraj.exponential_coordinates_from_transforms([T_test])[
-                0]
-            print("the error is: ", (T_test - T))
-            ##################
+        # 计算位置差
+        pos = T_new[:, :3, 3] - m[:, :3, 3]
+        # 计算姿态差
+        rot = pk.matrix_to_axis_angle(
+            T_new[:, :3, :3] @ m[:, :3, :3].transpose(1, 2))
+        ee_e = torch.cat([pos, rot], dim=1)
 
-            # grad = ee velocity, 6x1 vx vy vz wx wy wz
-            grad = gmm_grasp.grad(T)
+        # 此时的J
+        J = chain.jacobian(q_temp)
 
-            if np.linalg.norm(grad) > 1e1:
-                grad = grad / np.linalg.norm(grad) * 1e1
-            # print("the speed is: ", grad)
+        # q velocity
+        q_transpose = J.transpose(1, 2)
+        q_dot = (q_transpose @ torch.linalg.solve(J @
+                 q_transpose, ee_e[:, :, None]))[:, :, 0]
+        q_temp += q_dot
 
-            T_new = copy.deepcopy(T)
-            T_new[:3] = T[:3] + 1e-3 * grad[:3]
-            T_new[3:] = T[3:] + 1e-3 * grad[3:]
-            T_new = torch.tensor(pytransform3d.trajectories.transforms_from_exponential_coordinates(T_new),
-                                 dtype=dtype)[None, :, :]
-
-            pos = T_new[:, :3, 3] - m[:, :3, 3]
-            rot = pk.matrix_to_axis_angle(
-                T_new[:, :3, :3] @ m[:, :3, :3].transpose(1, 2))
-            ee_e = torch.cat([pos, rot], dim=1)
-
-            J = chain.jacobian(q_temp)
-
-            q_temp += (J.transpose(1, 2) @ torch.linalg.solve(J @
-                       J.transpose(1, 2), ee_e[:, :, None]))[:, :, 0]
-
-        # q velocity (J.transpose(1, 2) @ torch.linalg.solve(J @ J.transpose(1, 2), ee_e[:, :, None]))[:, :, 0]
-        print(torch.linalg.norm((J.transpose(1, 2) @ torch.linalg.solve(J @
-              J.transpose(1, 2), ee_e[:, :, None]))[:, :, 0]))
-
-        if torch.linalg.norm((J.transpose(1, 2) @ torch.linalg.solve(J @ J.transpose(1, 2), ee_e[:, :, None]))[:, :, 0]) < 0.005:
+        q_norm = torch.linalg.norm(q_dot)
+        if q_norm < 0.005:
             break
-
-        # if (torch.linalg.norm(
-        #         q_temp - torch.tensor(robot.get_joint_state(), dtype=dtype, device=device, requires_grad=False)[None,
-        #                  :])) < 0.003:
-        #     robot.close_gripper()
-        #     flag = True
-        # if flag:
-        #     count -= 1
-        # if count == 0:
-        #     break
 
         robot.control_arm_poses(q_temp[0])
         robot.reset_arm_poses(q_temp[0])
