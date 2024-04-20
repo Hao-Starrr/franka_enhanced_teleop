@@ -236,12 +236,12 @@ class FrankaPandaEnvRosVisual(FrankaPandaEnv):
         image.header.stamp = stamp
         self.color_image_publisher.publish(image)
 
-        image = self.cv_bridge.cv2_to_imgmsg(depth)
+        image = self.cv_bridge.cv2_to_imgmsg(depth, encoding="32FC1")
         image.header.frame_id = "actual_camera"
         image.header.stamp = stamp
         self.depth_image_publisher.publish(image)
 
-        image = self.cv_bridge.cv2_to_imgmsg(mask)
+        image = self.cv_bridge.cv2_to_imgmsg(mask, encoding="16UC1")
         image.header.frame_id = "actual_camera"
         image.header.stamp = stamp
         self.mask_image_publisher.publish(image)
@@ -329,12 +329,15 @@ class FrankaPandaEnvRosVisual(FrankaPandaEnv):
                                          -1).tolist(),
                                      renderer=self.bc.ER_BULLET_HARDWARE_OPENGL,
                                      flags=self.bc.ER_SEGMENTATION_MASK_OBJECT_AND_LINKINDEX)
+
         color = cv2.cvtColor(np.array(img[2]), cv2.COLOR_RGB2BGR)
-        #####
-        mask = np.array(img[4])
-        #####
+        # depth = self.camera_far * self.camera_near / (
+        #     self.camera_far - (self.camera_far - self.camera_near) * np.array(img[3]))
         depth = np.array(img[3])
         # depth = np.where(depth >= self.camera_far, np.zeros_like(depth), depth)
+        #####
+        mask = np.array(img[4]).astype(np.uint16)
+        #####
         return color, depth, mask, cam_pos, cam_orn, pos, orn
 
     #####################################################################
