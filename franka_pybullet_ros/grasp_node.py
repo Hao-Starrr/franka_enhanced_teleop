@@ -141,33 +141,104 @@ class GraspNode:
         # print(self.points[0:10, :])
 
         ################# sample grasps from point cloud #######################
-        # model = GraspSampler()
+        model = GraspSampler()
 
-        # pcd = o3d.geometry.PointCloud()
-        # pcd.points = o3d.utility.Vector3dVector(self.points)
-        # pcd = pcd.voxel_down_sample(voxel_size=0.01)
-        # points = np.asarray(pcd.points)
-        # points, H, w = model.sampler(points)
+        pcd = o3d.geometry.PointCloud()
+        pcd.points = o3d.utility.Vector3dVector(self.points)
+        pcd = pcd.voxel_down_sample(voxel_size=0.01)
+        points = np.asarray(pcd.points)
+        points, H, w = model.sampler(points)
+        print("points shape: ", points.shape)
 
-        # ##################### choose the grasp pose #############################
+        # 已经在rviz里画了,不用这个了
+        # draw_point_cloud(self.points)
+
+        ##################### choose the grasp pose #############################
         # # reachability
         # gmm_reach = SE3GMM()
         # parameter = np.load('gmm_reachability.npz')
         # gmm_reach.mu = parameter['mu']
         # gmm_reach.sigma = parameter['sigma']
         # gmm_reach.pi = parameter['pi']
+
+        # print("H shape: ", H.shape)
         # H_prob = gmm_reach.eval(H)
         # H = H[H_prob > 0.0005733336724437366]
 
         # # grasp direction filter
         # H = H[H[:, 2, 3] > 0.05]
 
-        # ##################### fit the distribution, then we can take the gradient ##################
-        # self.gmm_grasp = SE3GMM()
-        # H_sample = self.gmm_grasp.fit(H, n_clusters=min(
-        #     8, H.shape[0]), n_iterations=10)
+        draw_grasp_poses(H, color=[1, 0., 0.], robot='franka')
+
+        ##################### fit the distribution, then we can take the gradient ##################
+        self.gmm_grasp = SE3GMM()
+        H_sample = self.gmm_grasp.fit(H, n_clusters=min(
+            8, H.shape[0]), n_iterations=10)
 
         ####################### then use self.gmm_grasp ##################
+
+    def control(self):  # not debug
+
+        device = "cpu"
+        dtype = torch.float32
+        chain = pk.build_serial_chain_from_urdf(
+            open("model_description/panda.urdf").read(), "panda_hand_tcp")
+        chain = chain.to(dtype=dtype, device=device)
+
+        # joint state is from topic
+        q_orig = robot.get_joint_state()
+
+        # 增加维度从7变成1x7
+        q_temp = torch.tensor(robot.get_joint_state(), dtype=dtype,
+                              device=device, requires_grad=False)[None, :]
+        with torch.inference_mode():
+            while True:
+                # 算出ee pose
+                m = chain.forward_kinematics(
+                    q_temp, end_only=True).get_matrix()
+                # 换成指数坐标
+                T = pytransform3d.trajectories.exponential_coordinates_from_transforms(
+                    m[0].numpy())
+
+                # 求梯度(指数坐标里的速度)
+                grad = self.gmm_grasp.grad(T)
+                if np.linalg.norm(grad) > 1e1:
+                    grad = grad / np.linalg.norm(grad) * 1e1
+                # 梯度也在指数坐标里,所以要在这个坐标里加上速度
+                T_new = copy.deepcopy(T)
+                T_new[:3] = T[:3] + 1e-3 * grad[:3]
+                T_new[3:] = T[3:] + 1e-3 * grad[3:]
+                # 转换回矩阵
+                T_new = torch.tensor(pytransform3d.trajectories.transforms_from_exponential_coordinates(T_new),
+                                     dtype=dtype)[None, :, :]
+
+                # 计算位置差
+                pos = T_new[:, :3, 3] - m[:, :3, 3]
+                # 计算姿态差
+                rot = pk.matrix_to_axis_angle(
+                    T_new[:, :3, :3] @ m[:, :3, :3].transpose(1, 2))
+                ee_e = torch.cat([pos, rot], dim=1)
+
+                # 此时的J
+                J = chain.jacobian(q_temp)
+
+                # q velocity
+                q_transpose = J.transpose(1, 2)
+                q_dot = (q_transpose @ torch.linalg.solve(J @
+                                                          q_transpose, ee_e[:, :, None]))[:, :, 0]
+                q_temp += q_dot
+
+                q_norm = torch.linalg.norm(q_dot)
+                if q_norm < 0.005:
+                    break
+
+                robot.control_arm_poses(q_temp[0])
+                robot.reset_arm_poses(q_temp[0])
+                # p.stepSimulation()
+                # time.sleep(0.01)
+
+    def get_joint_state(self, msg):
+        pass
 
     def publish_point_cloud(self, points):
         # 创建 PointCloud2 消息头
@@ -188,6 +259,7 @@ if __name__ == '__main__':
         gn.wait_for_messages()
         # 此时您有了所有初始化时的消息，可以进行处理
         gn.estimate_grasp_pose()
+        gn.control()
 
         r = rospy.Rate(10)  # 10hz
         while not rospy.is_shutdown():

@@ -89,6 +89,7 @@ model = GraspSampler()
 
 points = get_point_cloud(640, 480, robot.get_view_matrix(),
                          robot.projectionMatrix, object_id)
+print("points shape: ", points.shape)
 pcd = o3d.geometry.PointCloud()
 pcd.points = o3d.utility.Vector3dVector(points)
 pcd = pcd.voxel_down_sample(voxel_size=0.01)
@@ -104,6 +105,8 @@ parameter = np.load('gmm_reachability.npz')
 gmm_reach.mu = parameter['mu']
 gmm_reach.sigma = parameter['sigma']
 gmm_reach.pi = parameter['pi']
+print("H shape: ", H.shape)
+
 H_prob = gmm_reach.eval(H)
 H = H[H_prob > 0.0005733336724437366]
 
@@ -147,6 +150,7 @@ dtype = torch.float32
 chain = pk.build_serial_chain_from_urdf(
     open("KUKA_IIWA_URDF/iiwa7.urdf").read(), "iiwa_link_ee")
 chain = chain.to(dtype=dtype, device=device)
+q_orig = robot.get_joint_state()
 
 # 增加维度从7变成1x7
 q_temp = torch.tensor(robot.get_joint_state(), dtype=dtype,

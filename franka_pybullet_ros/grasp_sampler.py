@@ -28,6 +28,7 @@ class GraspSampler:
         ort_inputs = {self.sess.get_inputs()[0].name: input}
         R, t, s, w = self.sess.run(None, ort_inputs)
 
+        # is it a threhold grasp?
         mask = s[0] > 0.7  # 0.7
         R = R[0, mask]
         t = t[0, mask]
@@ -35,6 +36,7 @@ class GraspSampler:
         normals = normals[mask]
 
         n_grasps = R.shape[0]
+        print("Number of grasps 1: ", n_grasps)
 
         if n_grasps > 0:
             H = np.repeat(np.eye(4)[None, ...], n_grasps, axis=0)
@@ -54,23 +56,26 @@ class GraspSampler:
             w = w[collision_check]
             normals = normals[collision_check]
             n_grasps = H.shape[0]
+            print("Number of grasps 2: ", n_grasps)
 
-            if n_grasps > 0:
-                c2 = 1.12169998e-01 * H[:, :3, 2] + \
-                    H[:, :3, 0] * w[:, np.newaxis] / 2
-                c2_normal = self.gp.get_surface_normal(c2)
-                normal_check = np.sum(normals * c2_normal, axis=1) < -0.1
-                H = H[normal_check]
-                w = w[normal_check]
-                n_grasps = H.shape[0]
+            # if n_grasps > 0:
+            #     c2 = 1.12169998e-01 * H[:, :3, 2] + \
+            #         H[:, :3, 0] * w[:, np.newaxis] / 2
+            #     c2_normal = self.gp.get_surface_normal(c2)
+            #     normal_check = np.sum(normals * c2_normal, axis=1) < -0.1
+            #     H = H[normal_check]
+            #     w = w[normal_check]
+            #     n_grasps = H.shape[0]
 
-                if n_grasps > 0:
-                    H_reverse = copy.deepcopy(H)
-                    H_reverse[:, :3, 0] = -H[:, :3, 0]
-                    H_reverse[:, :3, 1] = -H[:, :3, 1]
-                    H = np.concatenate([H, H_reverse])
-                    H = self.franka2kuka(H)
-                    w = np.concatenate([w, w])
+            print("Number of grasps 3: ", n_grasps)
 
-                    return points, H, w
+            # if n_grasps > 0:
+            #     H_reverse = copy.deepcopy(H)
+            #     H_reverse[:, :3, 0] = -H[:, :3, 0]
+            #     H_reverse[:, :3, 1] = -H[:, :3, 1]
+            #     H = np.concatenate([H, H_reverse])
+            #     H = self.franka2kuka(H)
+            #     w = np.concatenate([w, w])
+
+            return points, H, w
         return points, None, None
