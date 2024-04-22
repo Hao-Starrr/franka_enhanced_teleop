@@ -30,7 +30,7 @@ class FrankaPandaEnv:
         #                     "YcbMediumClamp",
         #                     "YcbMustardBottle", "YcbPottedMeatCan", "YcbPowerDrill", "YcbTennisBall",
         #                     "YcbTomatoSoupCan"]
-        self.object_list = ["YcbTennisBall"]
+        self.object_list = ["YcbMustardBottle"]
 
         if object_from_list:
             self.add_ycb_objects_from_list(self.object_list)

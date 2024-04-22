@@ -236,12 +236,12 @@ class FrankaPandaEnvRosVisual(FrankaPandaEnv):
         image.header.stamp = stamp
         self.color_image_publisher.publish(image)
 
-        image = self.cv_bridge.cv2_to_imgmsg(depth, encoding="32FC1")
+        image = self.cv_bridge.cv2_to_imgmsg(depth)
         image.header.frame_id = "actual_camera"
         image.header.stamp = stamp
         self.depth_image_publisher.publish(image)
 
-        image = self.cv_bridge.cv2_to_imgmsg(mask, encoding="16UC1")
+        image = self.cv_bridge.cv2_to_imgmsg(mask)
         image.header.frame_id = "actual_camera"
         image.header.stamp = stamp
         self.mask_image_publisher.publish(image)

@@ -156,14 +156,14 @@ class GraspNode:
 
     def depth_callback(self, msg):
         try:
-            self.depth_image = self.cv_bridge.imgmsg_to_cv2(msg, "32FC1")
+            self.depth_image = self.cv_bridge.imgmsg_to_cv2(msg)
         except CvBridgeError as e:
             rospy.logerr(e)
 
     def mask_callback(self, msg):
         try:
             self.mask_image = self.cv_bridge.imgmsg_to_cv2(
-                msg, "16UC1")  # 或者 "16UC1" 取决于您的数据
+                msg)  # 或者 "16UC1" 取决于您的数据
         except CvBridgeError as e:
             rospy.logerr(e)
 
