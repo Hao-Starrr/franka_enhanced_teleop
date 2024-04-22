@@ -1,9 +1,13 @@
 import rospy
 import tf
 from sensor_msgs.msg import Image, PointCloud2
-from std_msgs.msg import Header
+from std_msgs.msg import Header, Float64MultiArray
 import sensor_msgs.point_cloud2 as pc2
 from cv_bridge import CvBridge, CvBridgeError
+from sensor_msgs.msg import JointState
+from visualization_msgs.msg import Marker, MarkerArray
+from geometry_msgs.msg import Point
+from std_msgs.msg import ColorRGBA
 
 import trimesh
 import copy
@@ -14,7 +18,6 @@ import pybullet_data as pd
 import time
 import open3d as o3d
 
-from utils import draw_point_cloud, draw_grasp_poses, draw_grasp_frames
 from grasp_sampler import GraspSampler
 from riem_gmm import SE3GMM
 
@@ -87,6 +90,40 @@ def get_point_cloud(width, height, depth, segmentation, view_matrix, proj_matrix
 
     return points
 
+
+def draw_grasp_poses(pub, H, color=[1, 0, 0]):
+
+    marker = Marker()
+    marker.header.frame_id = "world"
+    marker.type = Marker.LINE_LIST
+    marker.action = Marker.ADD
+    marker.scale.x = 0.01  # Line width
+    marker.color = ColorRGBA(color[0], color[1], color[2], 1.0)  # RGBA color
+    marker.pose.orientation.w = 1.0
+
+    # Define gripper geometry relative to the base link
+    gripper_vertices = np.array([
+        [0.041, 0, 0.0659999996, 1],
+        [0.041, 0, 0.112169998, 1],
+        [-0.041, 0, 0.0659999996, 1],
+        [-0.041, 0, 0.112169998, 1],
+        [0, 0, 0, 1],
+        [0, 0, 0.0659999996, 1]
+    ])
+    gripper_edges = np.array([[4, 5], [0, 2], [0, 1], [2, 3]])
+
+    for i in range(H.shape[0]):
+        gripper_points = (H[i] @ gripper_vertices.T).T[:, :3]
+        for u, v in gripper_edges:
+            p1 = Point(gripper_points[u][0],
+                       gripper_points[u][1], gripper_points[u][2])
+            p2 = Point(gripper_points[v][0],
+                       gripper_points[v][1], gripper_points[v][2])
+            marker.points.append(p1)
+            marker.points.append(p2)
+
+    pub.publish(marker)
+
 # Define the class for grasp node
 
 
@@ -98,9 +135,17 @@ class GraspNode:
             '/camera/depth/image_raw', Image, self.depth_callback)
         self.mask_sub = rospy.Subscriber(
             '/camera/mask/image_raw', Image, self.mask_callback)
+        self.joint_sub = rospy.Subscriber(
+            '/joint', JointState, self.joint_callback)
+
+        self.command_pub = rospy.Publisher(
+            '/franka_physics_position_controller', Float64MultiArray, queue_size=1)
+
+        self.viz_pub = rospy.Publisher('/grasp_poses', Marker, queue_size=10)
 
         self.depth_image = None
         self.mask_image = None
+        self.joints = None
 
         self.tf_listener = tf.TransformListener()
         self.frame_id = 'actual_camera'  # Change to your camera frame's name
@@ -121,6 +166,10 @@ class GraspNode:
                 msg, "16UC1")  # 或者 "16UC1" 取决于您的数据
         except CvBridgeError as e:
             rospy.logerr(e)
+
+    def joint_callback(self, msg):
+        # 这里的joints是从topic里得到的，是7个关节的角度
+        self.joints = np.array(msg.position)
 
     def wait_for_messages(self):
         rospy.loginfo("Waiting for messages...")
@@ -148,7 +197,7 @@ class GraspNode:
         pcd = pcd.voxel_down_sample(voxel_size=0.01)
         points = np.asarray(pcd.points)
         points, H, w = model.sampler(points)
-        print("points shape: ", points.shape)
+        print("point cloud shape: ", points.shape)
 
         # 已经在rviz里画了,不用这个了
         # draw_point_cloud(self.points)
@@ -168,7 +217,8 @@ class GraspNode:
         # # grasp direction filter
         # H = H[H[:, 2, 3] > 0.05]
 
-        draw_grasp_poses(H, color=[1, 0., 0.], robot='franka')
+        print("final grasp H shape: ", H.shape)
+        draw_grasp_poses(self.viz_pub, H, color=[1, 0., 0.])
 
         ##################### fit the distribution, then we can take the gradient ##################
         self.gmm_grasp = SE3GMM()
@@ -186,13 +236,13 @@ class GraspNode:
         chain = chain.to(dtype=dtype, device=device)
 
         # joint state is from topic
-        q_orig = robot.get_joint_state()
+        q_orig = self.joints
 
         # 增加维度从7变成1x7
-        q_temp = torch.tensor(robot.get_joint_state(), dtype=dtype,
+        q_temp = torch.tensor(self.joints, dtype=dtype,
                               device=device, requires_grad=False)[None, :]
         with torch.inference_mode():
-            while True:
+            while not rospy.is_shutdown():
                 # 算出ee pose
                 m = chain.forward_kinematics(
                     q_temp, end_only=True).get_matrix()
@@ -232,13 +282,12 @@ class GraspNode:
                 if q_norm < 0.005:
                     break
 
-                robot.control_arm_poses(q_temp[0])
-                robot.reset_arm_poses(q_temp[0])
+                publish_msg = Float64MultiArray()
+                publish_msg.data = q_temp[0].tolist()
+                self.command_pub.publish(publish_msg)
+
                 # p.stepSimulation()
                 # time.sleep(0.01)
-
-    def get_joint_state(self, msg):
-        pass
 
     def publish_point_cloud(self, points):
         # 创建 PointCloud2 消息头
@@ -259,7 +308,7 @@ if __name__ == '__main__':
         gn.wait_for_messages()
         # 此时您有了所有初始化时的消息，可以进行处理
         gn.estimate_grasp_pose()
-        gn.control()
+        # gn.control()
 
         r = rospy.Rate(10)  # 10hz
         while not rospy.is_shutdown():
