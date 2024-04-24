@@ -29,7 +29,7 @@ class GraspSampler:
         R, t, s, w = self.sess.run(None, ort_inputs)
 
         # is it a threhold grasp?
-        mask = s[0] > 0.7  # 0.7
+        mask = s[0] > 0.5  # 0.7
         R = R[0, mask]
         t = t[0, mask]
         w = w[0, mask]
@@ -39,6 +39,7 @@ class GraspSampler:
         print("Number of grasps 1: ", n_grasps)
 
         if n_grasps > 0:
+            # collision check
             H = np.repeat(np.eye(4)[None, ...], n_grasps, axis=0)
             H[:, :3, :3] = R
             H[:, :3, 3] = t
@@ -59,6 +60,7 @@ class GraspSampler:
             print("Number of grasps 2: ", n_grasps)
 
             # if n_grasps > 0:
+            #     # closure check
             #     c2 = 1.12169998e-01 * H[:, :3, 2] + \
             #         H[:, :3, 0] * w[:, np.newaxis] / 2
             #     c2_normal = self.gp.get_surface_normal(c2)

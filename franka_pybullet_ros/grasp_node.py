@@ -199,9 +199,6 @@ class GraspNode:
         points, H, w = model.sampler(points)
         print("point cloud shape: ", points.shape)
 
-        # 已经在rviz里画了,不用这个了
-        # draw_point_cloud(self.points)
-
         ##################### choose the grasp pose #############################
         # # reachability
         # gmm_reach = SE3GMM()
