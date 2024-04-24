@@ -27,6 +27,7 @@ import pytransform3d.trajectories
 
 import roboticstoolbox as rtb
 from spatialmath import SE3
+import spatialmath as sm
 
 
 def get_projection_matrix():
@@ -235,6 +236,9 @@ class GraspNode:
             open("model_description/panda.urdf").read(), "panda_hand_tcp")
         chain = chain.to(dtype=dtype, device=device)
 
+        panda = rtb.models.URDF.Panda()
+
+
         # joint state is from topic
         q_orig = self.joints
 
@@ -244,11 +248,11 @@ class GraspNode:
         with torch.inference_mode():
             while not rospy.is_shutdown():
                 # 算出ee pose
-                m = chain.forward_kinematics(
-                    q_temp, end_only=True).get_matrix()
+                ee = panda.fkine(q_temp)
+                m = np.array(ee.A)
+
                 # 换成指数坐标
-                T = pytransform3d.trajectories.exponential_coordinates_from_transforms(
-                    m[0].numpy())
+                T = pytransform3d.trajectories.exponential_coordinates_from_transforms(m)
 
                 # 求梯度(指数坐标里的速度)
                 grad = self.gmm_grasp.grad(T)
@@ -259,26 +263,23 @@ class GraspNode:
                 T_new[:3] = T[:3] + 1e-3 * grad[:3]
                 T_new[3:] = T[3:] + 1e-3 * grad[3:]
                 # 转换回矩阵
-                T_new = torch.tensor(pytransform3d.trajectories.transforms_from_exponential_coordinates(T_new),
-                                     dtype=dtype)[None, :, :]
-
+                T_new = sm.SE3.Exp(T_new).A
                 # 计算位置差
-                pos = T_new[:, :3, 3] - m[:, :3, 3]
+                pos = T_new[:3, 3] - m[:3, 3]
                 # 计算姿态差
                 rot = pk.matrix_to_axis_angle(
-                    T_new[:, :3, :3] @ m[:, :3, :3].transpose(1, 2))
-                ee_e = torch.cat([pos, rot], dim=1)
+                    T_new[:3, :3] @ m[:3, :3].transpose(1, 2))
+                ee_e = np.concatenate([pos, rot])
 
                 # 此时的J
-                J = chain.jacobian(q_temp)
+                J = panda.jacob0(q_temp)
 
                 # q velocity
                 q_transpose = J.transpose(1, 2)
-                q_dot = (q_transpose @ torch.linalg.solve(J @
-                                                          q_transpose, ee_e[:, :, None]))[:, :, 0]
+                q_dot = np.linalg.pinv(J) @ ee_e
                 q_temp += q_dot
 
-                q_norm = torch.linalg.norm(q_dot)
+                q_norm = np.linalg.norm(q_dot)
                 if q_norm < 0.005:
                     break
 
@@ -308,7 +309,7 @@ if __name__ == '__main__':
         gn.wait_for_messages()
         # 此时您有了所有初始化时的消息，可以进行处理
         gn.estimate_grasp_pose()
-        # gn.control()
+        gn.control()
 
         r = rospy.Rate(10)  # 10hz
         while not rospy.is_shutdown():
