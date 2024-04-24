@@ -36,7 +36,7 @@ class GraspSampler:
         normals = normals[mask]
 
         n_grasps = R.shape[0]
-        print("Number of grasps 1: ", n_grasps)
+        print("Number of grasps after threshold check: ", n_grasps)
 
         if n_grasps > 0:
             H = np.repeat(np.eye(4)[None, ...], n_grasps, axis=0)
@@ -56,50 +56,55 @@ class GraspSampler:
             w = w[collision_check]
             normals = normals[collision_check]
             n_grasps = H.shape[0]
-            print("Number of grasps 2: ", n_grasps)
 
-            if n_grasps > 0:
-                c2 = 1.12169998e-01 * H[:, :3, 2] + \
-                    H[:, :3, 0] * w[:, np.newaxis] / 2
-                c2_normal = self.gp.get_surface_normal(c2)
-                normal_check = np.sum(normals * c2_normal, axis=1) < 0.0
-                H = H[normal_check]
-                w = w[normal_check]
-                n_grasps = H.shape[0]
+        print("Number of grasps after collision check: ", n_grasps)
 
-            print("Number of grasps 3: ", n_grasps)
+        if n_grasps > 0:
+            c2 = 1.12169998e-01 * H[:, :3, 2] + \
+                H[:, :3, 0] * w[:, np.newaxis] / 2
+            c2_normal = self.gp.get_surface_normal(c2)
+            normal_check = np.sum(normals * c2_normal, axis=1) < 0.0
+            H = H[normal_check]
+            w = w[normal_check]
+            n_grasps = H.shape[0]
 
-            if n_grasps > 0:
-                # Extract rotation matrices from H
-                rotation_matrices = H[:, :3, :3]
+        print("Number of grasps after normal check: ", n_grasps)
 
-                # Calculate rotation angles
-                rotation_angles = np.array([np.arccos(R[2,2]) for R in rotation_matrices])
+        if n_grasps > 0:
+            # Extract rotation matrices from H
+            rotation_matrices = H[:, :3, :3]
 
-                # Now you have rotation angles for each grasp
-                # You can perform further processing or checks based on these angles
-                # For example, you can check if the rotation angle is within a certain range
+            # Calculate rotation angles
+            rotation_angles = np.array(
+                [np.arccos(R[2, 2]) for R in rotation_matrices])
 
-                # Example: check if rotation angle is within 90 degrees of the vertical axis
-                angle_threshold = np.radians(90)
-                # angle_check = rotation_angles > 0
-                vertical_angle_check = rotation_angles > angle_threshold
-                # vertical_angle_check = angle_check & vertical_angle_check
-                H = H[vertical_angle_check]
-                w = w[vertical_angle_check]
-                n_grasps = H.shape[0]
-                print("Number of grasps after vertical angle check: ", n_grasps)
+            # Now you have rotation angles for each grasp
+            # You can perform further processing or checks based on these angles
+            # For example, you can check if the rotation angle is within a certain range
 
-            if n_grasps > 0:
-                H_reverse = copy.deepcopy(H)
-                H_reverse[:, :3, 0] = -H[:, :3, 0]
-                H_reverse[:, :3, 1] = -H[:, :3, 1]
-                H = np.concatenate([H, H_reverse])
-                # H = self.franka2kuka(H)
-                w = np.concatenate([w, w])
-                n_grasps = H.shape[0]
-            
-            print("Number of grasps 4: ", n_grasps)
+            # Example: check if rotation angle is within 90 degrees of the vertical axis
+            angle_threshold = np.radians(90)
+            # angle_check = rotation_angles > 0
+            vertical_angle_check = rotation_angles > angle_threshold
+            # vertical_angle_check = angle_check & vertical_angle_check
+            H = H[vertical_angle_check]
+            w = w[vertical_angle_check]
+            n_grasps = H.shape[0]
 
+        print("Number of grasps after vertical angle check: ", n_grasps)
+
+        if n_grasps > 0:
             return points, H, w
+
+        # if n_grasps > 0:
+        #     H_reverse = copy.deepcopy(H)
+        #     H_reverse[:, :3, 0] = -H[:, :3, 0]
+        #     H_reverse[:, :3, 1] = -H[:, :3, 1]
+        #     H = np.concatenate([H, H_reverse])
+        #     # H = self.franka2kuka(H)
+        #     w = np.concatenate([w, w])
+        #     n_grasps = H.shape[0]
+
+        # print("Number of grasps :", n_grasps)
+
         return points, None, None

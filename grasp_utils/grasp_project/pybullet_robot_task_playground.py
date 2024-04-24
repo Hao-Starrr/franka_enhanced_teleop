@@ -15,6 +15,9 @@ from robot import KUKASAKE
 import torch
 import pytorch_kinematics as pk
 import pytransform3d.trajectories
+from pytransform3d.trajectories import exponential_coordinates_from_transforms
+from pytransform3d.trajectories import transforms_from_exponential_coordinates
+from scipy.spatial.transform import Rotation as R
 
 import roboticstoolbox as rtb
 from spatialmath import SE3
@@ -107,6 +110,8 @@ gmm_reach.sigma = parameter['sigma']
 gmm_reach.pi = parameter['pi']
 print("H shape: ", H.shape)
 
+
+# why??????????????????
 H_prob = gmm_reach.eval(H)
 H = H[H_prob > 0.0005733336724437366]
 
@@ -145,60 +150,53 @@ for i in range(100):
     # T[3:] += 1e-3 * grad[3:] / np.linalg.norm(grad[3:])
 
 
-device = "cpu"
-dtype = torch.float32
-chain = pk.build_serial_chain_from_urdf(
-    open("KUKA_IIWA_URDF/iiwa7.urdf").read(), "iiwa_link_ee")
-chain = chain.to(dtype=dtype, device=device)
-q_orig = robot.get_joint_state()
-
+kuka_model = rtb.models.iiwa7()
 # 增加维度从7变成1x7
-q_temp = torch.tensor(robot.get_joint_state(), dtype=dtype,
-                      device=device, requires_grad=False)[None, :]
-with torch.inference_mode():
-    while True:
-        # 算出ee pose
-        m = chain.forward_kinematics(q_temp, end_only=True).get_matrix()
-        # 换成指数坐标
-        T = pytransform3d.trajectories.exponential_coordinates_from_transforms(
-            m[0].numpy())
+q_temp = robot.get_joint_state()
+print("q_temp shape: ", q_temp.shape)
 
-        # 求梯度(指数坐标里的速度)
-        grad = gmm_grasp.grad(T)
-        if np.linalg.norm(grad) > 1e1:
-            grad = grad / np.linalg.norm(grad) * 1e1
-        # 梯度也在指数坐标里,所以要在这个坐标里加上速度
-        T_new = copy.deepcopy(T)
-        T_new[:3] = T[:3] + 1e-3 * grad[:3]
-        T_new[3:] = T[3:] + 1e-3 * grad[3:]
-        # 转换回矩阵
-        T_new = torch.tensor(pytransform3d.trajectories.transforms_from_exponential_coordinates(T_new),
-                             dtype=dtype)[None, :, :]
+while True:
+    # 算出ee pose
+    m = kuka_model.fkine(q_temp).A
 
-        # 计算位置差
-        pos = T_new[:, :3, 3] - m[:, :3, 3]
-        # 计算姿态差
-        rot = pk.matrix_to_axis_angle(
-            T_new[:, :3, :3] @ m[:, :3, :3].transpose(1, 2))
-        ee_e = torch.cat([pos, rot], dim=1)
+    # 换成指数坐标
+    T = exponential_coordinates_from_transforms(m)
 
-        # 此时的J
-        J = chain.jacobian(q_temp)
+    # 求梯度(指数坐标里的速度)
+    grad = gmm_grasp.grad(T)
+    if np.linalg.norm(grad) > 1e1:
+        grad = grad / np.linalg.norm(grad) * 1e1
 
-        # q velocity
-        q_transpose = J.transpose(1, 2)
-        q_dot = (q_transpose @ torch.linalg.solve(J @
-                 q_transpose, ee_e[:, :, None]))[:, :, 0]
-        q_temp += q_dot
+    # 梯度也在指数坐标里,所以要在这个坐标里加上速度
+    T_new = copy.deepcopy(T)
+    T_new[0:3] = T[0:3] + 1e-3 * grad[0:3]
+    T_new[3:6] = T[3:6] + 1e-3 * grad[3:6]
+    # 转换回矩阵
+    T_new = transforms_from_exponential_coordinates(T_new)
 
-        q_norm = torch.linalg.norm(q_dot)
-        if q_norm < 0.005:
-            break
+    # 计算位置差
+    pos = T_new[0:3, 3] - m[0:3, 3]
+    # 计算姿态差
+    rot = T_new[:3, :3] @ m[:3, :3].T
+    rot_vector = R.from_matrix(rot).as_rotvec()
 
-        robot.control_arm_poses(q_temp[0])
-        robot.reset_arm_poses(q_temp[0])
-        # p.stepSimulation()
-        # time.sleep(0.01)
+    ee_error = np.hstack((pos, rot_vector))
+
+    # 此时的J
+    J = kuka_model.jacob0(q_temp)
+
+    # q velocity
+    q_dot = np.linalg.pinv(J) @ ee_error.reshape(-1, 1)  # 使用伪逆计算关节速度
+    q_temp += q_dot.flatten()  # * 0.01
+
+    q_norm = np.linalg.norm(q_dot)
+    if q_norm < 0.005:
+        break
+
+    robot.control_arm_poses(q_temp)
+    robot.reset_arm_poses(q_temp)
+    # p.stepSimulation()
+    # time.sleep(0.01)
 
 
 robot.reset_arm_poses(q_temp[0])

@@ -17,16 +17,15 @@ import pybullet as p
 import pybullet_data as pd
 import time
 import open3d as o3d
+from scipy.spatial.transform import Rotation as R
 
 from grasp_sampler import GraspSampler
 from riem_gmm import SE3GMM
 
-import torch
-import pytorch_kinematics as pk
-import pytransform3d.trajectories
+from pytransform3d.trajectories import exponential_coordinates_from_transforms
+from pytransform3d.trajectories import transforms_from_exponential_coordinates
 
 import roboticstoolbox as rtb
-from spatialmath import SE3
 
 
 def get_projection_matrix():
@@ -154,6 +153,8 @@ class GraspNode:
         self.pcl_pub = rospy.Publisher(
             '/camera/point_cloud', PointCloud2, queue_size=2)
 
+        self.panda_model = rtb.models.DH.Panda()
+
     def depth_callback(self, msg):
         try:
             self.depth_image = self.cv_bridge.imgmsg_to_cv2(msg)
@@ -169,7 +170,7 @@ class GraspNode:
 
     def joint_callback(self, msg):
         # 这里的joints是从topic里得到的，是7个关节的角度
-        self.joints = np.array(msg.position)
+        self.joints = np.array(msg.position)[0:7]
 
     def wait_for_messages(self):
         rospy.loginfo("Waiting for messages...")
@@ -200,6 +201,9 @@ class GraspNode:
         print("point cloud shape: ", points.shape)
 
         ##################### choose the grasp pose #############################
+
+        # it is for kuka data, no need for franka
+
         # # reachability
         # gmm_reach = SE3GMM()
         # parameter = np.load('gmm_reachability.npz')
@@ -226,65 +230,54 @@ class GraspNode:
 
     def control(self):  # not debug
 
-        device = "cpu"
-        dtype = torch.float32
-        chain = pk.build_serial_chain_from_urdf(
-            open("model_description/panda.urdf").read(), "panda_hand_tcp")
-        chain = chain.to(dtype=dtype, device=device)
-
         # joint state is from topic
-        q_orig = self.joints
+        q_temp = self.joints
+        print("q_temp shape: ", q_temp.shape)
 
-        # 增加维度从7变成1x7
-        q_temp = torch.tensor(self.joints, dtype=dtype,
-                              device=device, requires_grad=False)[None, :]
-        with torch.inference_mode():
-            while not rospy.is_shutdown():
-                # 算出ee pose
-                m = chain.forward_kinematics(
-                    q_temp, end_only=True).get_matrix()
-                # 换成指数坐标
-                T = pytransform3d.trajectories.exponential_coordinates_from_transforms(
-                    m[0].numpy())
+        while not rospy.is_shutdown():
+            # 算出ee pose
+            m = self.panda_model.fkine(q_temp).A
 
-                # 求梯度(指数坐标里的速度)
-                grad = self.gmm_grasp.grad(T)
-                if np.linalg.norm(grad) > 1e1:
-                    grad = grad / np.linalg.norm(grad) * 1e1
-                # 梯度也在指数坐标里,所以要在这个坐标里加上速度
-                T_new = copy.deepcopy(T)
-                T_new[:3] = T[:3] + 1e-3 * grad[:3]
-                T_new[3:] = T[3:] + 1e-3 * grad[3:]
-                # 转换回矩阵
-                T_new = torch.tensor(pytransform3d.trajectories.transforms_from_exponential_coordinates(T_new),
-                                     dtype=dtype)[None, :, :]
+            # 换成指数坐标
+            T = exponential_coordinates_from_transforms(m)
 
-                # 计算位置差
-                pos = T_new[:, :3, 3] - m[:, :3, 3]
-                # 计算姿态差
-                rot = pk.matrix_to_axis_angle(
-                    T_new[:, :3, :3] @ m[:, :3, :3].transpose(1, 2))
-                ee_e = torch.cat([pos, rot], dim=1)
+            # 求梯度(指数坐标里的速度)
+            grad = self.gmm_grasp.grad(T)
+            if np.linalg.norm(grad) > 1e1:
+                grad = grad / np.linalg.norm(grad) * 1e1
 
-                # 此时的J
-                J = chain.jacobian(q_temp)
+            # 梯度也在指数坐标里,所以要在这个坐标里加上速度
+            T_new = copy.deepcopy(T)
+            T_new[0:3] = T[0:3] + 1e-3 * grad[0:3]
+            T_new[3:6] = T[3:6] + 1e-3 * grad[3:6]
+            # 转换回矩阵
+            T_new = transforms_from_exponential_coordinates(T_new)
 
-                # q velocity
-                q_transpose = J.transpose(1, 2)
-                q_dot = (q_transpose @ torch.linalg.solve(J @
-                                                          q_transpose, ee_e[:, :, None]))[:, :, 0]
-                q_temp += q_dot
+            # 计算位置差
+            pos = T_new[0:3, 3] - m[0:3, 3]
+            # 计算姿态差
+            rot = T_new[:3, :3] @ m[:3, :3].T
+            rot_vector = R.from_matrix(rot).as_rotvec()
 
-                q_norm = torch.linalg.norm(q_dot)
-                if q_norm < 0.005:
-                    break
+            ee_error = np.hstack((pos, rot_vector))
 
-                publish_msg = Float64MultiArray()
-                publish_msg.data = q_temp[0].tolist()
-                self.command_pub.publish(publish_msg)
+            # 此时的J
+            J = self.panda_model.jacob0(q_temp)
 
-                # p.stepSimulation()
-                # time.sleep(0.01)
+            # q velocity
+            q_dot = np.linalg.pinv(J) @ ee_error.reshape(-1, 1)  # 使用伪逆计算关节速度
+            q_temp += q_dot.flatten()  # * 0.01
+
+            q_norm = np.linalg.norm(q_dot)
+            if q_norm < 0.005:
+                break
+
+            publish_msg = Float64MultiArray()
+            publish_msg.data = q_temp.tolist()
+            self.command_pub.publish(publish_msg)
+
+            # p.stepSimulation()
+            # time.sleep(0.01)
 
     def publish_point_cloud(self, points):
         # 创建 PointCloud2 消息头
