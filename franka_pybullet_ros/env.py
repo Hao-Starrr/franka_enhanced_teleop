@@ -57,7 +57,7 @@ class FrankaPandaEnv:
     def add_urdf_object(self, filename):
         flags = self.bc.URDF_USE_INERTIA_FROM_FILE
         self.object_id.append(self.bc.loadURDF(
-            filename, [0.5, 0.0, 0.4], flags=flags))
+            filename, [0.5, 0.0, 0.1], useFixedBase=True, flags=flags))
 
     def add_ycb_objects_from_list(self, object_list):
         self.bc.configureDebugVisualizer(self.bc.COV_ENABLE_RENDERING, 0)

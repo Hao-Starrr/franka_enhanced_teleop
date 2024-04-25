@@ -83,7 +83,7 @@ class GraspSampler:
             # For example, you can check if the rotation angle is within a certain range
 
             # Example: check if rotation angle is within 90 degrees of the vertical axis
-            angle_threshold = np.radians(90)
+            angle_threshold = np.radians(80)
             # angle_check = rotation_angles > 0
             vertical_angle_check = rotation_angles > angle_threshold
             # vertical_angle_check = angle_check & vertical_angle_check
@@ -94,17 +94,16 @@ class GraspSampler:
         print("Number of grasps after vertical angle check: ", n_grasps)
 
         if n_grasps > 0:
+            H_reverse = copy.deepcopy(H)
+            H_reverse[:, :3, 0] = -H[:, :3, 0]
+            H_reverse[:, :3, 1] = -H[:, :3, 1]
+            H = np.concatenate([H, H_reverse])
+            # H = self.franka2kuka(H)
+            w = np.concatenate([w, w])
+            n_grasps = H.shape[0]
+
+        print("Number of grasps :", n_grasps)
+
+        if n_grasps > 0:
             return points, H, w
-
-        # if n_grasps > 0:
-        #     H_reverse = copy.deepcopy(H)
-        #     H_reverse[:, :3, 0] = -H[:, :3, 0]
-        #     H_reverse[:, :3, 1] = -H[:, :3, 1]
-        #     H = np.concatenate([H, H_reverse])
-        #     # H = self.franka2kuka(H)
-        #     w = np.concatenate([w, w])
-        #     n_grasps = H.shape[0]
-
-        # print("Number of grasps :", n_grasps)
-
         return points, None, None

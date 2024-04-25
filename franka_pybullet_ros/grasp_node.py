@@ -153,7 +153,7 @@ class GraspNode:
         self.pcl_pub = rospy.Publisher(
             '/camera/point_cloud', PointCloud2, queue_size=2)
 
-        self.panda_model = rtb.models.DH.Panda()
+        self.panda_model = rtb.models.Panda()
 
     def depth_callback(self, msg):
         try:
@@ -195,7 +195,7 @@ class GraspNode:
 
         pcd = o3d.geometry.PointCloud()
         pcd.points = o3d.utility.Vector3dVector(self.points)
-        pcd = pcd.voxel_down_sample(voxel_size=0.01)
+        pcd = pcd.voxel_down_sample(voxel_size=0.005)
         points = np.asarray(pcd.points)
         points, H, w = model.sampler(points)
         print("point cloud shape: ", points.shape)
@@ -219,12 +219,12 @@ class GraspNode:
         # H = H[H[:, 2, 3] > 0.05]
 
         print("final grasp H shape: ", H.shape)
-        draw_grasp_poses(self.viz_pub, H, color=[1, 0., 0.])
 
         ##################### fit the distribution, then we can take the gradient ##################
         self.gmm_grasp = SE3GMM()
         H_sample = self.gmm_grasp.fit(H, n_clusters=min(
-            8, H.shape[0]), n_iterations=10)
+            6, H.shape[0]), n_iterations=10)
+        draw_grasp_poses(self.viz_pub, H_sample, color=[1, 0., 0.])
 
         ####################### then use self.gmm_grasp ##################
 
@@ -232,11 +232,20 @@ class GraspNode:
 
         # joint state is from topic
         q_temp = self.joints
-        print("q_temp shape: ", q_temp.shape)
+        # print("q_temp shape: ", q_temp.shape)
+        theta = np.pi/4
+        ee_frame_transform = np.array([
+            [np.cos(theta), -np.sin(theta), 0, 0],
+            [np.sin(theta),  np.cos(theta), 0, 0],
+            [0,             0,             1,  -0.0659999996],
+            [0,             0,             0, 1]
+        ])
 
         while not rospy.is_shutdown():
             # 算出ee pose
-            m = self.panda_model.fkine(q_temp).A
+            m = self.panda_model.fkine(
+                q_temp, end="panda_link8", tool=ee_frame_transform).A
+            # m = m @ ee_frame_transform
 
             # 换成指数坐标
             T = exponential_coordinates_from_transforms(m)
@@ -266,14 +275,15 @@ class GraspNode:
 
             # q velocity
             q_dot = np.linalg.pinv(J) @ ee_error.reshape(-1, 1)  # 使用伪逆计算关节速度
-            q_temp += q_dot.flatten()  # * 0.01
+            q_temp += q_dot.flatten() * 0.5
 
             q_norm = np.linalg.norm(q_dot)
-            if q_norm < 0.005:
+            if q_norm < 0.0001:
                 break
 
             publish_msg = Float64MultiArray()
             publish_msg.data = q_temp.tolist()
+            # publish_msg.data[6] += 1.57
             self.command_pub.publish(publish_msg)
 
             # p.stepSimulation()
@@ -298,12 +308,12 @@ if __name__ == '__main__':
         gn.wait_for_messages()
         # 此时您有了所有初始化时的消息，可以进行处理
         gn.estimate_grasp_pose()
-        # gn.control()
+        gn.control()
 
-        r = rospy.Rate(10)  # 10hz
-        while not rospy.is_shutdown():
-            gn.publish_point_cloud(gn.points)
-            r.sleep()
+        # r = rospy.Rate(10)  # 10hz
+        # while not rospy.is_shutdown():
+        #     gn.publish_point_cloud(gn.points)
+        #     r.sleep()
 
         # gn.points is what we want
 

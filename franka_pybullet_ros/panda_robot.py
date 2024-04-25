@@ -50,7 +50,8 @@ class FrankaPanda:
 
         # bring the robot to its home position
         self.home_joint = [0, 0, 0, -1.57079, 0, 1.57079, -0.7853, 0.04, 0.04]
-        self.home_joint = [0, 0-0.7853, 0, -1.57079-0.7853, 0, 1.57079+0.7853, 0.7853, 0.04, 0.04]
+        self.home_joint = [0, 0-1.2, 0, -1.57079 -
+                           1.2, 0, 1.57079+0.4, 0.7853, 0.04, 0.04]
         self.reset_state()
 
         # initialize the gripper
