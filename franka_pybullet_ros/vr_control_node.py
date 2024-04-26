@@ -1,59 +1,64 @@
-
-#!/usr/bin/env python3
 import rospy
-from geometry_msgs.msg import Point
-from std_msgs.msg import Int32
-from std_msgs.msg import Float64
+from std_msgs.msg import Float32MultiArray
+import roboticstoolbox as rtb
+from spatialmath import SE3
+import numpy as np
+from sensor_msgs.msg import JointState
 
-
-# 输入ee xyz和pinch state 0/1
-# 输出 ee 速度
-# q dot
 
 class VRControlNode:
     def __init__(self):
-        # 初始化ROS节点
-        rospy.init_node('vr_control_node')
+        rospy.init_node('vr_control_node', anonymous=True)
 
-        # 创建发布者，假设消息类型为Float64
-        self.velocity_publisher = rospy.Publisher(
-            '/ee_velocity', Float64, queue_size=10)
+        # 订阅righthand topic，假设这是end effector的位置信息
+        self.subscriber = rospy.Subscriber(
+            'righthand', Float32MultiArray, self.callback)
 
-        # 创建订阅者，订阅VR设备的数据
-        self.position_subscriber = rospy.Subscriber(
-            '/vr_position', Point, self.position_callback)
-        self.pinch_subscriber = rospy.Subscriber(
-            '/vr_pinch_state', Int32, self.pinch_callback)
+        self.joint_sub = rospy.Subscriber(
+            '/joint', JointState, self.joint_callback)
 
-        # 初始化变量
-        self.current_position = Point()
-        self.current_pinch_state = 0
+        # 机器人模型
+        self.robot = rtb.models.Panda()
 
-    def position_callback(self, msg):
-        # 更新当前位置
-        self.current_position = msg
-        # 计算并发布速度
-        self.compute_and_publish_velocity()
+        # 储存上一次的位置和时间以计算速度
+        self.last_position = None
+        self.last_time = None
 
-    def pinch_callback(self, msg):
-        # 更新当前pinch状态
-        self.current_pinch_state = msg.data
-        # 计算并发布速度
-        self.compute_and_publish_velocity()
+        self.current_q = None
 
-    def compute_and_publish_velocity(self):
-        # 计算速度的逻辑
-        velocity = self.calculate_velocity(
-            self.current_position, self.current_pinch_state)
-        # 发布速度
-        self.velocity_publisher.publish(velocity)
+    def joint_callback(self, msg):
+        # 这里的joints是从topic里得到的，是7个关节的角度
+        self.current_q = np.array(msg.position)[0:7]
 
-    def calculate_velocity(self, position, pinch_state):
-        # 这里是计算逻辑，你可以根据需求进行实现
-        # 示例：返回一个基于位置和pinch状态的简单计算结果
-        return Float64(data=position.x + position.y + position.z + pinch_state)
+    def callback(self, data):
+        # 获取当前时间和位置
+        current_time = rospy.Time.now()
+        current_position = np.array(data.data[:3])  # 只取xyz坐标
+
+        if self.last_position is not None:
+            # 计算时间差和位置差
+            dt = (current_time - self.last_time).to_sec()
+            if dt > 0:
+                velocity = (current_position - self.last_position) / dt
+
+                # 计算关节速度
+                J = self.robot.jacob0(self.current_q)
+                dq = np.linalg.pinv(
+                    J) @ np.hstack((velocity, [0, 0, 0]))  # 只考虑线性速度
+
+                # 打印关节速度
+                print("Calculated joint velocities (dq):", dq)
+                # 打印ee速度
+                print("Calculated end-effector velocity (v):", velocity)
+
+        # 更新位置和时间
+        self.last_position = current_position
+        self.last_time = current_time
+
+    def run(self):
+        rospy.spin()
 
 
 if __name__ == '__main__':
     node = VRControlNode()
-    rospy.spin()
+    node.run()
