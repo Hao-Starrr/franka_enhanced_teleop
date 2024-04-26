@@ -35,9 +35,9 @@ def start_udp_server_ros(ip, port):
 
     # Create ROS publishers for the two hands
     pub_lefthand = rospy.Publisher(
-        'lefthand', Float32MultiArray, queue_size=10)
+        '/lefthand', Float32MultiArray, queue_size=10)
     pub_righthand = rospy.Publisher(
-        'righthand', Float32MultiArray, queue_size=10)
+        '/righthand', Float32MultiArray, queue_size=10)
 
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # UDP
     sock.bind((ip, port))
@@ -75,4 +75,4 @@ def start_udp_server_ros(ip, port):
 if __name__ == "__main__":
     IP_ADDRESS = "0.0.0.0"  # Listen on all available IPs
     PORT = 7777  # The port number to listen on
-    start_udp_server(IP_ADDRESS, PORT)
+    start_udp_server_ros(IP_ADDRESS, PORT)

@@ -138,7 +138,7 @@ class GraspNode:
             '/joint', JointState, self.joint_callback)
 
         self.command_pub = rospy.Publisher(
-            '/franka_physics_position_controller', Float64MultiArray, queue_size=1)
+            '/control_from_field', Float64MultiArray, queue_size=1)
 
         self.viz_pub = rospy.Publisher('/grasp_poses', Marker, queue_size=10)
 
