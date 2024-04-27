@@ -2,31 +2,7 @@ from std_msgs.msg import Float32MultiArray
 import rospy
 import socket
 import struct
-
-
-def start_udp_server(ip, port):
-    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)  # UDP
-    sock.bind((ip, port))
-    print(f"Listening on {ip}:{port}")
-
-    try:
-        while True:
-            data, addr = sock.recvfrom(1024)  # buffer size is 1024 bytes
-
-            if len(data) == 17:
-                # Unpack data
-                # Assuming data structure: int, float, float, float, bool
-                # Format: 'i' for int, 'fff' for three floats, '?' for bool
-                id, x, y, z, isPinching = struct.unpack('<ifff?', data)
-                print(
-                    f"Received ID: {id}, Position: ({x}, {y}, {z}), Pinching: {isPinching} from {addr}")
-            else:
-                print(f"Error: Expected 17 bytes but received {len(data)}")
-                print(f"Received message: {data} from {addr}")
-
-    except KeyboardInterrupt:
-        print("UDP Server is closing")
-        sock.close()
+import numpy as np
 
 
 def start_udp_server_ros(ip, port):
@@ -54,6 +30,11 @@ def start_udp_server_ros(ip, port):
                 print(
                     f"Received ID: {id}, Position: ({x}, {y}, {z}), Pinching: {isPinching} from {addr}")
 
+                # flip the coordinate system
+                coordinate = np.array([x, y, z])
+                x = coordinate[2]
+                y = -coordinate[0]
+                z = coordinate[1]
                 # Prepare the message for ROS
                 msg = Float32MultiArray()
                 msg.data = [x, y, z, float(isPinching)]

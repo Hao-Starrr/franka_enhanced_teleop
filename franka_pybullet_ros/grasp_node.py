@@ -140,6 +140,7 @@ class GraspNode:
         self.command_pub = rospy.Publisher(
             '/control_from_field', Float64MultiArray, queue_size=1)
 
+        # debug
         # self.command_pub = rospy.Publisher(
         #     '/franka_physics_position_controller', Float64MultiArray, queue_size=1)
 

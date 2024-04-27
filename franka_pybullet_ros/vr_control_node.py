@@ -15,16 +15,14 @@ class VRControlNode:
         self.robot = rtb.models.Panda()
 
         # 订阅righthand topic，假设这是end effector的位置信息
-        self.subscriber = rospy.Subscriber(
-            '/righthand', Float32MultiArray, self.callback)
+        self.hand_sub = rospy.Subscriber(
+            '/righthand', Float32MultiArray, self.hand_callback)
 
         self.joint_sub = rospy.Subscriber(
             '/joint', JointState, self.joint_callback)
 
         self.command_pub = rospy.Publisher(
             '/control_from_vr', Float64MultiArray, queue_size=1)
-
-        # 储存上一次的位置和时间以计算速度
 
         self.current_q = None
         self.current_ee_pose = None
@@ -76,10 +74,9 @@ class VRControlNode:
 
         return dq
 
-    def callback(self, data):
+    def hand_callback(self, data):
         # 获取当前时间和位置
         hand_position = np.array(data.data[:3])  # 只取xyz坐标
-        hand_position = self.swap_axis(hand_position)
         hand_position[2] -= 0.65
 
         # 计算位置差
@@ -97,16 +94,7 @@ class VRControlNode:
 
         publish_msg = Float64MultiArray()
         publish_msg.data = q_temp.tolist()
-        # publish_msg.data[6] += 1.57
         self.command_pub.publish(publish_msg)
-
-    def swap_axis(self, coordinate):
-        x = coordinate[2]
-        y = -coordinate[0]
-        z = coordinate[1]
-        coordinate = np.array([x, y, z]).flatten()
-
-        return coordinate
 
 
 if __name__ == '__main__':
