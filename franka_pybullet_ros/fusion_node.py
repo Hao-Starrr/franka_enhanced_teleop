@@ -32,10 +32,19 @@ class DataFusionNode:
         self.weight_vr = 1 - self.weight_field
 
         self.dist = None
-        self.gravity_range = 0.3
+        self.gravity_range = 0.5
+
+        self.listener.waitForTransform(
+            '/2', '/ee', rospy.Time(0), rospy.Duration(2.0))
 
     def callback_vr(self, data):
         self.data_vr = data.data
+        self.update_distance()
+        print("distance: ", self.dist)
+
+        self.calculate_weight()
+        print("weight: ", self.weight_field)
+
         self.try_publish()
 
     def callback_field(self, data):
@@ -62,9 +71,9 @@ class DataFusionNode:
 
     def update_distance(self):
         try:
-            # 等待tf数据，可以调整超时时间
-            self.listener.waitForTransform(
-                '/2', '/ee', rospy.Time(0), rospy.Duration(2.0))
+            # # 等待tf数据，可以调整超时时间
+            # self.listener.waitForTransform(
+            #     '/2', '/ee', rospy.Time(0), rospy.Duration(2.0))
             # 获取frame2到ee的变换
             (trans, rot) = self.listener.lookupTransform(
                 '/2', '/ee', rospy.Time(0))
@@ -75,8 +84,14 @@ class DataFusionNode:
 
     def calculate_weight(self):
         # 使用ReLU函数类似的处理来计算weight
-        weight = (self.gravity_range - self.dist) / self.gravity_range
+        # weight = (self.gravity_range - self.dist) / self.gravity_range
+
+        weight = (- 1/self.gravity_range**2 * self.dist**2 + 1)
         weight = np.clip(weight, 0, 1)
+        # if self.dist < self.gravity_range:
+        #     weight = 1
+        # else:
+        #     weight = 0
 
         self.weight_field = weight
         self.weight_vr = 1 - weight

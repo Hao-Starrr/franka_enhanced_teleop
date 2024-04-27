@@ -140,6 +140,9 @@ class GraspNode:
         self.command_pub = rospy.Publisher(
             '/control_from_field', Float64MultiArray, queue_size=1)
 
+        # self.command_pub = rospy.Publisher(
+        #     '/franka_physics_position_controller', Float64MultiArray, queue_size=1)
+
         self.viz_pub = rospy.Publisher('/grasp_poses', Marker, queue_size=10)
 
         self.depth_image = None
@@ -228,10 +231,12 @@ class GraspNode:
 
         ####################### then use self.gmm_grasp ##################
 
-    def control(self):  # not debug
+    def control(self):
+
+        print("start control")
 
         # joint state is from topic
-        q_temp = self.joints
+        # q_temp = self.joints
         # print("q_temp shape: ", q_temp.shape)
         theta = np.pi/4
         ee_frame_transform = np.array([
@@ -242,9 +247,10 @@ class GraspNode:
         ])
 
         while not rospy.is_shutdown():
+
             # 算出ee pose
             m = self.panda_model.fkine(
-                q_temp, end="panda_link8", tool=ee_frame_transform).A
+                self.joints, end="panda_link8", tool=ee_frame_transform).A
             # m = m @ ee_frame_transform
 
             # 换成指数坐标
@@ -257,8 +263,9 @@ class GraspNode:
 
             # 梯度也在指数坐标里,所以要在这个坐标里加上速度
             T_new = copy.deepcopy(T)
-            T_new[0:3] = T[0:3] + 1e-3 * grad[0:3]
-            T_new[3:6] = T[3:6] + 1e-3 * grad[3:6]
+            rate = 1e-3
+            T_new[0:3] = T[0:3] + rate * grad[0:3]
+            T_new[3:6] = T[3:6] + rate * grad[3:6]
             # 转换回矩阵
             T_new = transforms_from_exponential_coordinates(T_new)
 
@@ -270,16 +277,18 @@ class GraspNode:
 
             ee_error = np.hstack((pos, rot_vector))
 
+            print("velocity: ", ee_error)
+
             # 此时的J
-            J = self.panda_model.jacob0(q_temp)
+            J = self.panda_model.jacob0(self.joints)
 
             # q velocity
             q_dot = np.linalg.pinv(J) @ ee_error.reshape(-1, 1)  # 使用伪逆计算关节速度
-            q_temp += q_dot.flatten() * 0.5
+            q_temp = self.joints + q_dot.flatten() * 20.0
 
-            q_norm = np.linalg.norm(q_dot)
-            if q_norm < 0.0001:
-                break
+            # q_norm = np.linalg.norm(q_dot)
+            # if q_norm < 0.0001:
+            #     break
 
             publish_msg = Float64MultiArray()
             publish_msg.data = q_temp.tolist()
