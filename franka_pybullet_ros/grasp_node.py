@@ -285,7 +285,7 @@ class GraspNode:
 
             # q velocity
             q_dot = np.linalg.pinv(J) @ ee_error.reshape(-1, 1)  # 使用伪逆计算关节速度
-            q_temp = self.joints + q_dot.flatten() * 20.0
+            q_temp = self.joints + q_dot.flatten() * 25.0
 
             # q_norm = np.linalg.norm(q_dot)
             # if q_norm < 0.0001:
